@@ -3,6 +3,7 @@ import os
 import re
 import subprocess
 import sys
+import tomllib
 import wave
 import zipfile
 from io import BytesIO, StringIO
@@ -200,14 +201,15 @@ def _mark_installed_tools_healthy(monkeypatch: pytest.MonkeyPatch) -> None:
 
 def _pyproject_version() -> str:
     text = (Path(__file__).resolve().parents[1] / "pyproject.toml").read_text(encoding="utf-8")
-    if sys.version_info >= (3, 11):
-        import tomllib
+    return str(tomllib.loads(text)["project"]["version"])
 
-        return str(tomllib.loads(text)["project"]["version"])
 
-    match = re.search(r'(?m)^\s*version\s*=\s*"([^"]+)"\s*$', text)
-    assert match is not None
-    return match.group(1)
+def test_project_requires_python_311() -> None:
+    text = (Path(__file__).resolve().parents[1] / "pyproject.toml").read_text(encoding="utf-8")
+    data = tomllib.loads(text)
+    assert data["project"]["requires-python"] == ">=3.11"
+    assert data["tool"]["ruff"]["target-version"] == "py311"
+    assert data["tool"]["mypy"]["python_version"] == "3.11"
 
 
 def test_runtime_version_matches_project_metadata() -> None:
@@ -261,19 +263,32 @@ def test_ci_workflow_includes_cross_platform_matrix() -> None:
     )
 
     assert "runs-on: ${{ matrix.os }}" in workflow
-    assert "os: ubuntu-latest" in workflow
-    assert "os: windows-latest" in workflow
-    assert "os: macos-latest" in workflow
-    assert 'python-version: "3.10"' in workflow
-    assert 'python-version: "3.11"' in workflow
-    assert 'python-version: "3.12"' in workflow
+    assert "ubuntu-latest" in workflow
+    assert "windows-latest" in workflow
+    assert "macos-latest" in workflow
+    assert 'python-version: "3.10"' not in workflow
+    assert '"3.11"' in workflow
+    assert '"3.12"' in workflow
     assert "Install FFmpeg (Linux)" in workflow
     assert "Install FFmpeg (macOS)" in workflow
     assert "Install FFmpeg (Windows)" in workflow
     assert "choco install ffmpeg" in workflow
     assert "brew install ffmpeg" in workflow
     assert "sudo apt-get install --yes ffmpeg" in workflow
-    assert "matrix.os == 'ubuntu-latest' && matrix.python-version == '3.11'" in workflow
+    assert 'pytest -m "not integration"' in workflow
+
+
+def test_release_workflow_build_jobs_avoid_redundant_full_pytest() -> None:
+    workflow = (Path(__file__).resolve().parents[1] / ".github" / "workflows" / "release.yml").read_text(
+        encoding="utf-8"
+    )
+
+    gate_section, build_section = workflow.split("build:", 1)
+    assert "python -m pytest" in gate_section
+    assert "python -m pytest" not in build_section
+    assert "Smoke test CLI" in build_section
+    assert "Smoke test executable" in build_section
+    assert '"$executable" --install-ffmpeg' in build_section
 
 
 def test_ci_workflow_smoke_tests_cli_help_entrypoints() -> None:

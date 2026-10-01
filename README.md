@@ -2,7 +2,7 @@
 
 ![License](https://img.shields.io/github/license/yaatv/yaatv)
 ![Release](https://img.shields.io/github/v/release/yaatv/yaatv)
-![Python](https://img.shields.io/badge/python-3.10+-blue)
+![Python](https://img.shields.io/badge/python-3.11+-blue)
 
 yaatv turns audio and cover art into an optimized video for YouTube and other
 upload sites.
@@ -210,7 +210,7 @@ python -m pip install "git+https://github.com/yaatv/yaatv.git"
 yaatv --version
 ```
 
-Python 3.10 or newer is required.
+Python 3.11 or newer is required.
 
 Python installs still need the local media tools. Run:
 

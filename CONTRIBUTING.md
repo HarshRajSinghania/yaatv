@@ -81,7 +81,7 @@ Getting started with a contribution follows a straightforward flow:
 
 ## Development setup
 
-Python 3.10 or newer is required.
+Python 3.11 or newer is required.
 
 ```sh
 python -m pip install -e ".[dev]"
